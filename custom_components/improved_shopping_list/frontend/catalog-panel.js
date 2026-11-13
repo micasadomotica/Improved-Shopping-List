@@ -666,27 +666,13 @@ class ImprovedShoppingCatalog extends HTMLElement {
     this._built = true;
     const root = this.shadowRoot;
     installDialogCloseButtons(root);
-    const addStoreLink = () => {
-      if(this._retrievingOption)return;
-      const value = root.querySelector("#product-link-value").value.trim();
-      const store = storeFromProductUrl(value);
-      if(value&&!store){const status=root.querySelector('#option-lookup-status');status.textContent='Introduce una URL HTTPS de una tienda compatible.';status.dataset.error='true';return;}
-      if (!store || !value) return;
-      if(!this._storeLinks[store])this._storeLinks[store] = value;
-      const url=value.startsWith('https://')?value:'',reference_id=url?'':value;
-      let ref=this._commercialReferences.find(ref=>ref.store===store&&(url?ref.url===url:ref.reference_id===reference_id));
-      if(!ref){ref={store,name:'',ean:'',reference_id,url,content_quantity:null,content_unit:'',content_confirmed:false};this._commercialReferences.push(ref);}else ref.active=true;
-      root.querySelector("#product-link-value").value = "";
-      this._renderStoreLinks();
-      return ref;
-    };
     root.querySelector('#retrieve-product-data').addEventListener('click',()=>{
       const value=root.querySelector('#product-link-value').value.trim();
       const ref={store:storeFromProductUrl(value)||'',name:'',ean:'',reference_id:'',url:value,content_quantity:null,content_unit:'',content_confirmed:false};
       void this._retrieveOption(ref,value,null,true);
     });
     root.querySelector("#product-link-value").addEventListener("keydown", event => {
-      if (event.key === "Enter" && !event.isComposing) { event.preventDefault(); addStoreLink(); }
+      if (event.key === "Enter" && !event.isComposing) { event.preventDefault(); this._addProductLink(); }
     });
     for (const button of root.querySelectorAll("[data-product-view]")) button.addEventListener("click", () => this._switchProductView(button.dataset.productView));
     root.querySelector("#product-form").addEventListener("invalid", event => {
@@ -1947,9 +1933,28 @@ class ImprovedShoppingCatalog extends HTMLElement {
     form.elements.name.focus();
   }
 
+  _addProductLink() {
+    if(this._retrievingOption)return;
+    const root=this.shadowRoot,value=root.querySelector('#product-link-value').value.trim();
+    const store=storeFromProductUrl(value);
+    if(value&&!store){const status=root.querySelector('#option-lookup-status');status.textContent='Introduce una URL HTTPS de una tienda compatible.';status.dataset.error='true';return;}
+    if(!store||!value)return;
+    if(!this._storeLinks[store])this._storeLinks[store]=value;
+    let ref=this._commercialReferences.find(ref=>ref.store===store&&ref.url===value);
+    if(!ref){ref={store,name:'',ean:'',reference_id:'',url:value,content_quantity:null,content_unit:'',content_confirmed:false};this._commercialReferences.push(ref);}else ref.active=true;
+    root.querySelector('#product-link-value').value='';
+    this._renderStoreLinks();
+    return ref;
+  }
+
   async _saveProduct() {
     if (this._saving || this._deletingProduct || this._retrievingOption) return;
     const root = this.shadowRoot;
+    // A typed URL belongs to the saved product even if retrieval failed or was skipped.
+    if(root.querySelector('#product-link-value').value.trim()&&!this._addProductLink()){
+      this._switchProductView('additional');
+      return;
+    }
     const form = root.querySelector("form");
     const fields = Object.fromEntries([...new FormData(form)].filter(([key])=>["name","category","image_url"].includes(key)));
     const product = { ...fields, price: this._editing?.price ?? null, currency: this._editing?.currency ?? "EUR", tags: structuredClone(this._editing?.tags ?? []), icon: this._editing?.icon ?? "", notes: this._editing?.notes ?? "" };

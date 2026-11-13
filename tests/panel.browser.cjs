@@ -2786,6 +2786,54 @@ async function checkStagedOptionURL(browser,url,errors){
   await context.close();
 }
 
+async function checkSavedOptionURL(browser,url,errors){
+  const value='https://tienda.mercadona.es/product/3830/aguacate-pieza';
+  for(const failedLookup of [false,true]){
+    const context=await browser.newContext({viewport:{width:1280,height:960}});
+    await context.addInitScript(()=>{if(!localStorage.getItem('catalog-fixture'))localStorage.setItem('catalog-fixture',JSON.stringify([
+      {id:'avocado',revision:1,name:'Aguacate',category:'',tags:[],image_url:'',icon:'',store_links:{},barcodes:[],commercial_references:[]}
+    ]));});
+    const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));await page.goto(url);
+    const open=async()=>{
+      await page.getByRole('button',{name:'Catálogo',exact:true}).click();
+      const catalog=page.locator('isl-catalog');
+      await catalog.locator('#toggle-catalog-layout').waitFor();
+      const rows=catalog.getByRole('button',{name:'Cambiar a vista de filas',exact:true});
+      if(await rows.isVisible())await rows.click();
+      await catalog.getByRole('button',{name:'Editar Aguacate',exact:true}).click();
+      const form=catalog.getByRole('dialog',{name:'Editar producto',exact:true});
+      await form.getByRole('button',{name:'Alternativas',exact:true}).click();return form;
+    };
+    let form=await open();const input=form.locator('#product-link-value');
+    // Unsupported hosts cannot be silently discarded by Save.
+    await input.fill('https://example.com/product/3830');
+    await form.getByRole('button',{name:'Guardar producto',exact:true}).click();
+    await form.getByText('Introduce una URL HTTPS de una tienda compatible.',{exact:true}).waitFor();
+    assert.equal(await page.evaluate(()=>window.catalogProducts[0].revision),1);
+    await input.fill(value);
+    if(failedLookup){
+      await page.evaluate(()=>window.failOptionLookup=true);
+      await form.locator('#retrieve-product-data').click();
+      await form.getByText('La web ha rechazado la consulta (HTTP 403).',{exact:true}).waitFor();
+    }
+    await form.getByRole('button',{name:'Guardar producto',exact:true}).click();await form.waitFor({state:'hidden'});
+    const saved=await page.evaluate(()=>window.catalogProducts[0]);
+    assert.equal(saved.commercial_references.length,1);
+    assert.equal(saved.commercial_references[0].store,'mercadona');
+    assert.equal(saved.commercial_references[0].url,value);
+    assert.equal(saved.commercial_references[0].ean,'');
+    assert.equal(saved.store_links.mercadona,value);
+    await page.reload();form=await open();
+    await openStoreOption(form.locator('.product-option[data-store="mercadona"]'));
+    assert.equal(await form.getByRole('textbox',{name:'URL de Mercadona',exact:true}).inputValue(),value);
+    // Saving the same staged URL again reuses the existing alternative.
+    await form.locator('#product-link-value').fill(value);
+    await form.getByRole('button',{name:'Guardar producto',exact:true}).click();await form.waitFor({state:'hidden'});
+    assert.equal(await page.evaluate(()=>window.catalogProducts[0].commercial_references.length),1);
+    await context.close();
+  }
+}
+
 async function checkAppearanceInLists(browser,url,errors){
   const context=await browser.newContext({viewport:{width:1280,height:960}}),page=await context.newPage();
   page.on('pageerror',error=>errors.push(error.message));await page.goto(url);
@@ -3366,6 +3414,7 @@ async function main() {
   let browser;
   try {
     browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+    if(process.argv.includes('--product-url-only')){const errors=[];const url=`http://127.0.0.1:${server.address().port}`;await checkStagedOptionURL(browser,url,errors);await checkSavedOptionURL(browser,url,errors);assert.deepEqual(errors,[]);console.log('Product URL persistence browser checks passed.');return;}
     if(process.argv.includes('--lidl-prices-only')){const errors=[];await checkLidlCatalogPrices(browser,`http://127.0.0.1:${server.address().port}`,errors);assert.deepEqual(errors,[]);console.log('Lidl catalog prices passed.');return;}
     if(process.argv.includes('--readers-editor-only')){const errors=[];await checkReaderEditor(browser,`http://127.0.0.1:${server.address().port}`,errors);assert.deepEqual(errors,[]);console.log('Reader editor passed.');return;}
     if(process.argv.includes('--mobile-spacing-only')){const errors=[];await checkMobileSpacing(browser,`http://127.0.0.1:${server.address().port}`,errors);assert.deepEqual(errors,[]);console.log('Mobile spacing passed.');return;}
@@ -5819,6 +5868,7 @@ async function main() {
     await checkDifferentOptionEAN(browser,url,errors);
     await checkBulkOptionLookup(browser,url,errors);
     await checkStagedOptionURL(browser,url,errors);
+    await checkSavedOptionURL(browser,url,errors);
     await checkLidlMetadata(browser,url,errors);
     await checkLidlReprocessLines(browser,url,errors);
     await checkReferenceFormats(browser,url,errors);
