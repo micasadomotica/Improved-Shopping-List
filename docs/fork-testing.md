@@ -4,15 +4,21 @@ Repositorio: https://github.com/micasadomotica/Improved-Shopping-List
 
 Versión de prueba: **0.88.1-beta.1**, basada en la 0.88.0 del proyecto original de TitoTB. Conserva el dominio `improved_shopping_list` y el formato de los datos existentes. Sustituye la misma integración; no se instala como una segunda integración independiente.
 
-## Instalar con HACS
+## Marketplace en Home Assistant 2026.11 o posterior
 
-1. Guarda una copia de seguridad de Home Assistant antes de sustituir la integración.
-2. En HACS, elimina la descarga del repositorio original desde su menú. Esto retira sus archivos; HACS no elimina los datos asociados. **No elimines la integración desde Ajustes → Dispositivos y servicios.**
-3. Antes de reiniciar, abre HACS → menú de tres puntos → Repositorios personalizados. Añade `https://github.com/micasadomotica/Improved-Shopping-List` con tipo **Integración**.
-4. Abre el repositorio del fork, permite mostrar versiones beta y descarga **0.88.1-beta.1**. Comprueba el propietario `micasadomotica` para distinguirlo del original.
-5. Reinicia Home Assistant después de instalar el fork y recarga el panel. La versión mostrada debe ser **0.88.1-beta.1**.
+Marketplace sustituye a HACS y se abre desde **Ajustes → Marketplace**. El archivo técnico `hacs.json` sigue siendo necesario para los repositorios personalizados.
 
-Referencias de HACS: [repositorios personalizados](https://www.hacs.dev/docs/faq/custom_repositories/) y [eliminación de una descarga y conservación de datos](https://www.hacs.dev/docs/use/repositories/dashboard/#removing-a-repository).
+**Si ya tienes el original configurado, no sigas la antigua indicación de desinstalarlo.** Marketplace impide desinstalar una integración configurada sin eliminar antes su configuración. «Delete and uninstall» también elimina sus dispositivos y entidades. El cambio de origen al fork conservando la configuración todavía debe verificarse; esta guía no garantiza ese procedimiento. Guarda una copia de seguridad antes de sustituir la instalación.
+
+Para una instalación nueva:
+
+1. En **Ajustes → Marketplace**, pulsa **Añadir desde enlace / Add from link** e introduce `https://github.com/micasadomotica/Improved-Shopping-List`. Conecta GitHub si se solicita.
+2. Añade el repositorio y abre su ficha. Marketplace detecta el tipo; selecciona **Integración** si lo solicita.
+3. Para recibir betas, habilita la entidad **Pre-release** del dispositivo del repositorio en **Ajustes → Dispositivos y servicios → Marketplace** y enciende su interruptor. La entidad viene deshabilitada.
+4. Selecciona **0.88.1-beta.1** al instalar. El menú de la ficha ofrece **Instalar otra versión / Install another version**.
+5. Sigue la indicación de reinicio y recarga el panel. Comprueba que muestra **0.88.1-beta.1**.
+
+Fuente: [documentación oficial de Marketplace](https://www.home-assistant.io/integrations/marketplace). La compatibilidad de la integración con Core 2026.10 se mantiene, pero estas instrucciones corresponden a Marketplace desde 2026.11.
 
 ## Comprobaciones en tu instalación
 
@@ -25,7 +31,7 @@ Referencias de HACS: [repositorios personalizados](https://www.hacs.dev/docs/faq
 
 ## Volver al original
 
-Retira la descarga del fork en HACS, añade o vuelve a descargar el repositorio de TitoTB y reinicia después de completar la instalación. No elimines la entrada de la integración ni sus datos. Las correcciones no introducen migraciones de almacenamiento.
+Conserva una copia de seguridad anterior a la prueba para poder restaurarla. No utilices «Delete and uninstall» como una sustitución que conserve dispositivos y entidades. Las correcciones no introducen migraciones de almacenamiento, pero eso no cambia el comportamiento de desinstalación de Marketplace.
 
 ## Trabajo con el repositorio original
 

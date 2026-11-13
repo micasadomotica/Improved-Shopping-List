@@ -1,6 +1,6 @@
 # <img src="https://raw.githubusercontent.com/TitoTB/Improved-Shopping-List/main/custom_components/improved_shopping_list/frontend/logo.png" alt="" width="40" height="40" align="left"> Improved Shopping List
 
-> **Fork de pruebas de micasadomotica — 0.88.1-beta.1.** Basado en la versión 0.88.0 de [TitoTB](https://github.com/TitoTB/Improved-Shopping-List). Incluye correcciones para guardar URL sin datos recuperados y consultar productos frescos de Mercadona sin utilizar sus códigos internos como EAN compartidos. Consulta la [instalación y prueba del fork](docs/fork-testing.md). La instalación descrita más abajo corresponde al proyecto original.
+> **Fork de pruebas de micasadomotica — 0.88.1-beta.1.** Basado en la versión 0.88.0 de [TitoTB](https://github.com/TitoTB/Improved-Shopping-List). Incluye correcciones para guardar URL sin datos recuperados y consultar productos frescos de Mercadona sin utilizar sus códigos internos como EAN compartidos. Consulta la [instalación y prueba del fork](docs/fork-testing.md). En Home Assistant 2026.11 o posterior se utiliza Marketplace. Si ya tienes el original configurado, lee la guía antes de sustituirlo.
 
 ## Índice
 
@@ -18,33 +18,17 @@
 
 - **Home Assistant Core 2026.10.0 o posterior** y una cuenta administradora para instalar y configurar la integración.
 - Al menos una lista existente con una entidad **todo**, como `todo.shopping_list`, Bring! o cualquier otro proveedor compatible. Si no tienes ninguna, puedes añadir la integración nativa [Shopping list](https://www.home-assistant.io/integrations/shopping_list/) desde **Ajustes → Dispositivos y servicios → Añadir integración**.
-- **HACS**, si eliges el método recomendado de instalación. Si todavía no lo tienes, sigue su [guía oficial de instalación](https://hacs.dev/docs/use/download/download/).
+- **Marketplace**, incluido en Home Assistant 2026.11 o posterior. La compatibilidad del código con Core 2026.10 se mantiene.
 
-No necesitas instalar tarjetas adicionales de HACS ni complementos de Home Assistant OS. Home Assistant instala automáticamente las dependencias de Python y las bibliotecas de la interfaz se incluyen con la integración. Las funciones que consultan tiendas, imágenes o diccionarios públicos requieren acceso a Internet. Puedes consultar el [detalle de las dependencias](https://github.com/TitoTB/Improved-Shopping-List/blob/main/docs/dependencies.md).
+No necesitas instalar tarjetas adicionales ni apps de Home Assistant OS. Home Assistant instala automáticamente las dependencias de Python y las bibliotecas de la interfaz se incluyen con la integración. Las funciones que consultan tiendas, imágenes o diccionarios públicos requieren acceso a Internet. Puedes consultar el [detalle de las dependencias](https://github.com/TitoTB/Improved-Shopping-List/blob/main/docs/dependencies.md).
 
-### Instalar con HACS
+### Instalar con Marketplace
 
-Pulsa el siguiente botón para abrir este repositorio en HACS dentro de tu Home Assistant. Si es la primera vez que utilizas My Home Assistant, puede pedirte la dirección de tu instancia. Después confirma la descarga y continúa con el reinicio y la configuración indicados más abajo.
+Sigue la [guía actualizada del fork](docs/fork-testing.md). Incluye cómo añadir el repositorio desde un enlace y activar versiones preliminares.
 
-<p align="center">
-  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=TitoTB&amp;repository=Improved-Shopping-List&amp;category=integration">
-    <img src="https://my.home-assistant.io/badges/hacs_repository.svg" alt="Abrir Improved Shopping List en HACS">
-  </a>
-</p>
+Si ya tienes el original configurado, no lo desinstales para cambiar al fork siguiendo las instrucciones antiguas. Marketplace puede eliminar también la configuración, los dispositivos y las entidades. Ese cambio de origen conservando la instalación aún debe verificarse.
 
-Si prefieres añadir el repositorio manualmente:
-
-1. Abre **HACS** en Home Assistant. En el menú de los **tres puntos**, entra en **Repositorios personalizados**.
-2. Añade `https://github.com/TitoTB/Improved-Shopping-List` y selecciona el tipo **Integración / Integration**. Pulsa **Añadir**. Puedes consultar estos pasos en la [documentación de repositorios personalizados de HACS](https://www.hacs.dev/docs/faq/custom_repositories/).
-3. Busca **Improved Shopping List** en HACS, abre su ficha y descarga la última versión estable.
-4. Cuando termine la descarga, **reinicia Home Assistant**. Descargar los archivos en HACS no configura todavía la integración.
-5. Ve a **Ajustes → Dispositivos y servicios → Añadir integración**, busca **Improved Shopping List** y selecciónala.
-6. Elige la entidad **todo** que quieres usar como lista de compra predeterminada y confirma la configuración.
-7. Abre **Improved Shopping List** desde la barra lateral. En **Ajustes → General** puedes añadir otras listas y cambiar la principal; en **Ajustes → Tiendas** puedes conectar cuentas y activar los catálogos que quieras utilizar.
-
-La integración utiliza los productos de la entidad que hayas elegido. No necesitas trasladarlos manualmente ni crear una tarjeta en un dashboard, y su configuración se realiza desde la interfaz, sin editar YAML.
-
-Si no aparece al buscarla en **Añadir integración**, comprueba que hayas reiniciado Home Assistant después de descargarla y recarga el navegador; si persiste, limpia su caché. Si no aparece ninguna lista en el selector inicial, configura primero una entidad **todo** y vuelve a intentarlo.
+Consulta la [documentación oficial de Marketplace](https://www.home-assistant.io/integrations/marketplace).
 
 ### Instalación manual alternativa
 
@@ -54,7 +38,7 @@ Si no aparece al buscarla en **Añadir integración**, comprueba que hayas reini
 
 ### Actualizaciones
 
-Si la instalaste con HACS, descarga desde allí las nuevas versiones y reinicia Home Assistant. Si utilizaste el método manual, sustituye la carpeta de la integración por la de la nueva versión y reinicia. Después, recarga la página del panel para cargar la interfaz actualizada.
+Si la instalaste con Marketplace, revisa las nuevas versiones en Ajustes → Actualizaciones y reinicia Home Assistant después de actualizar la integración. Si utilizaste el método manual, sustituye la carpeta de la integración por la de la nueva versión y reinicia. Después, recarga la página del panel para cargar la interfaz actualizada.
 
 ## Lista de la compra
 
