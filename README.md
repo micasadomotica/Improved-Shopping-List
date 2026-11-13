@@ -1,5 +1,7 @@
 # <img src="https://raw.githubusercontent.com/TitoTB/Improved-Shopping-List/main/custom_components/improved_shopping_list/frontend/logo.png" alt="" width="40" height="40" align="left"> Improved Shopping List
 
+> **Fork de pruebas de micasadomotica — 0.88.1-beta.1.** Basado en la versión 0.88.0 de [TitoTB](https://github.com/TitoTB/Improved-Shopping-List). Incluye correcciones para guardar URL sin datos recuperados y consultar productos frescos de Mercadona sin utilizar sus códigos internos como EAN compartidos. Consulta la [instalación y prueba del fork](docs/fork-testing.md). La instalación descrita más abajo corresponde al proyecto original.
+
 ## Índice
 
 - [Instalación](#instalación)

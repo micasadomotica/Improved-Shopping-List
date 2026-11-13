@@ -1,5 +1,12 @@
 # Historial de cambios
 
+## 0.88.1-beta.1 — 2026-11-13 — fork micasadomotica
+
+- Guarda la URL escrita en una nueva alternativa aunque la consulta falle o se omita. Evita duplicar la alternativa al guardar la misma URL otra vez.
+- Recupera productos frescos de Mercadona con códigos internos de circulación restringida mediante su referencia de tienda. Mantiene vacíos los EAN compartidos y conserva la validación estricta de las asociaciones automáticas, incluida la caché.
+- Separa la pieza y la bandeja de aguacates de las alternativas con EAN de otras tiendas. Conserva el precio por kilo y evita convertir pesos aproximados en contenido fijo.
+- Añade pruebas del formulario, de persistencia y de recuperación de información pendiente para estos casos.
+
 ## 0.88.0 — 2026-11-05
 
 - Los lectores procesan nuevos informes del mismo código mediante su fecha y hora (`last_reported`), sin exigir escanear antes otro producto. Se mantiene la protección antirrepetición y la comprobación de productos ya pendientes.
