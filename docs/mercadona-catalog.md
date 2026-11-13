@@ -32,6 +32,12 @@ El engranaje abre **Mostrar tienda en el catálogo**, desactivado por defecto. S
 
 También se puede introducir una URL de Mercadona en la ficha del producto → Alternativas → Recuperar datos. Se utiliza la misma API de producto.
 
+La recuperación manual también admite productos frescos cuyo código de 13 cifras empieza por `2`, como el aguacate por pieza (`3830`) o la bandeja de aguacates (`3858`). Se comprueba la referencia de la respuesta y el dígito de control del código, pero este no se guarda como EAN compartido: la alternativa se identifica mediante la tienda y la referencia del producto. No se utiliza ese código para buscar equivalencias con Lidl ni con otras tiendas. Las consultas automáticas por EAN siguen exigiendo una coincidencia exacta, también si reutilizan una consulta manual en caché.
+
+Si la URL se consulta dentro de una alternativa con EAN compartido, el producto fresco queda en una alternativa independiente. La pieza y la bandeja conservan referencias distintas. Cuando Mercadona indica venta a granel o peso variable, se guarda el precio por kilogramo disponible; el precio estimado por pieza o bandeja y su peso aproximado no se convierten en un precio por kilo ni en contenido fijo. La cantidad de piezas de la bandeja no se inventa.
+
+Al guardar un producto se conserva también la URL escrita en el campo de nueva alternativa, aunque haya fallado la consulta o no se haya pulsado «Recuperar datos». Después se puede volver a consultar o completar manualmente la alternativa.
+
 ## Diccionario inicial y procedencia
 
 El diccionario v4 conserva las columnas Carrefour, Alcampo y Lidl y añade **195 enlaces de Mercadona**. Se obtuvieron por coincidencia exacta de EAN entre el diccionario público existente y las respuestas de productos conservadas en [datania/mercadona-catalog](https://huggingface.co/datasets/datania/mercadona-catalog), revisión `b0ac2530018080341bddd64b43728c4b4b45c39f` del 26/10/2026 (licencia MIT). Solo se incorporan EAN y URL oficial; no se copian imágenes, precios ni datos de los usuarios. El índice completo se prepara a partir de la misma fuente, eliminando la restricción de que el EAN deba existir en el feed de Carrefour. Home Assistant descarga el índice compacto y verifica de nuevo el EAN en la API antes de crear una alternativa de Mercadona o guardar su precio.

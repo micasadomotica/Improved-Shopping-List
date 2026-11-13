@@ -58,11 +58,11 @@ def merge_result(product,job,data):
     original=next((r for r in refs if r["id"]==job["reference_id"] and r.get("active") is not False and r.get("url")==job["url"]),None)
     if not original:return False
     target=original
-    different=bool(gtin(original.get("ean")) and gtin(data.get("ean")) and gtin(original["ean"])!=gtin(data["ean"]))
+    different=bool(gtin(original.get("ean")) and (gtin(data.get("ean")) or data.get("store")=="mercadona") and gtin(original["ean"])!=gtin(data.get("ean")))
     if different:
-        target=next((r for r in refs if r is not original and r.get("store")==data["store"] and gtin(r.get("ean"))==gtin(data["ean"]) and (r.get("reference_id")==data["reference_id"] or r.get("url")==data["url"])),None)
+        target=next((r for r in refs if r is not original and r.get("store")==data["store"] and gtin(r.get("ean"))==gtin(data.get("ean")) and (r.get("reference_id")==data["reference_id"] or r.get("url")==data["url"])),None)
         if target and target.get("active") is False:return False
-        if target is None:target={"store":data["store"],"ean":data["ean"]};refs.append(target)
+        if target is None:target={"store":data["store"],"ean":data.get("ean","")};refs.append(target)
         original["url"]="";original["reference_id"]=""
     old_store=original.get("store")
     old_link=product.get("store_links",{}).get(old_store)

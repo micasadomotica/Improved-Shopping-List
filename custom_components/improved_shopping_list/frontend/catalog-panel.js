@@ -1777,7 +1777,8 @@ class ImprovedShoppingCatalog extends HTMLElement {
       if(generation!==this._optionGeneration||!root.querySelector('dialog').open||!this.isConnected)return;
       if((newOption?root.querySelector('#product-link-value').value.trim():ref.url||ref.reference_id)!==value){status.textContent='El enlace ha cambiado. Pulsa Recuperar datos de nuevo.';return;}
       const differentEAN=Boolean(barcodeIdentity(ref.ean??'')&&barcodeIdentity(data.ean??'')&&barcodeIdentity(ref.ean)!==barcodeIdentity(data.ean));
-      if(differentEAN){
+      const localMercadona=Boolean(data.store==='mercadona'&&!barcodeIdentity(data.ean??'')&&barcodeIdentity(ref.ean??''));
+      if(differentEAN||localMercadona){
         const original=ref,origin=this._optionLinkOrigins?.get(original);
         if(origin){
           original.url=origin.url;original.reference_id=origin.reference_id;
@@ -1793,7 +1794,7 @@ class ImprovedShoppingCatalog extends HTMLElement {
         }
         ref=this._commercialReferences.find(item=>item!==original&&item.active!==false&&item.store===data.store&&barcodeIdentity(item.ean??'')===barcodeIdentity(data.ean)&&
           (item.reference_id===data.reference_id||item.url===data.url||!item.reference_id&&!item.url));
-        if(!ref){ref={store:data.store,ean:data.ean,name:'',reference_id:'',url:'',brand:'',content_quantity:null,content_unit:'',content_confirmed:false};this._commercialReferences.push(ref);}
+        if(!ref){ref={store:data.store,ean:data.ean||'',name:'',reference_id:'',url:'',brand:'',content_quantity:null,content_unit:'',content_confirmed:false};this._commercialReferences.push(ref);}
       }
       const previousStore=ref.store,changedStore=previousStore!==data.store;
       if(changedStore){
@@ -1803,7 +1804,7 @@ class ImprovedShoppingCatalog extends HTMLElement {
         delete ref.id;delete ref.last_price;delete ref.measure_price;delete ref.ticket_reference_id;
       }
       const existing=this._commercialReferences.find(item=>item!==ref&&item.active!==false&&item.store===data.store&&
-        (!item.ean||!data.ean||barcodeIdentity(item.ean)===barcodeIdentity(data.ean))&&(item.reference_id===data.reference_id||item.url===data.url));
+        (data.store==='mercadona'&&!barcodeIdentity(data.ean??'')?!barcodeIdentity(item.ean??''):!item.ean||!data.ean||barcodeIdentity(item.ean)===barcodeIdentity(data.ean))&&(item.reference_id===data.reference_id||item.url===data.url));
       if(existing){this._commercialReferences=this._commercialReferences.filter(item=>item!==ref);ref=existing;}
       else if(newOption)this._commercialReferences.push(ref);
       const originalLink=this._optionLinkOrigins?.get(ref);
@@ -1833,7 +1834,7 @@ class ImprovedShoppingCatalog extends HTMLElement {
       this._expandedOptions.add(ref.id||`${ref.store}:${ref.reference_id||ref.url||ref.ean}`);
       if(barcodeIdentity(ref.ean??'')){this._expandedEANs??=new Set();this._expandedEANs.add('ean:'+barcodeIdentity(ref.ean));}
       this._renderStoreLinks();this._renderProductCodes();
-      status.textContent=differentEAN?'La ficha corresponde a otro EAN. Sus datos se han recuperado en una alternativa independiente. Guarda el producto para conservarlos.':changedStore?`Opción reclasificada en ${STORE_NAMES[data.store]??data.store}. Datos recuperados. Guarda el producto para conservarlos.`:'Datos recuperados. Guarda el producto para conservarlos.';
+      status.textContent=localMercadona?'La ficha no tiene un EAN compartido. Sus datos se han recuperado en una alternativa independiente. Guarda el producto para conservarlos.':differentEAN?'La ficha corresponde a otro EAN. Sus datos se han recuperado en una alternativa independiente. Guarda el producto para conservarlos.':changedStore?`Opción reclasificada en ${STORE_NAMES[data.store]??data.store}. Datos recuperados. Guarda el producto para conservarlos.`:'Datos recuperados. Guarda el producto para conservarlos.';
     }catch(error){if(generation===this._optionGeneration&&root.querySelector('dialog').open){const message=error.message||'No se han podido recuperar los datos. Puedes conservar el enlace y completar la opción manualmente.';status.textContent=feedback?'':message;status.dataset.error=String(!feedback);if(feedback){feedback.hidden=false;feedback.dataset.error='true';feedback.textContent=message;}}}
     finally{
       if(generation===this._optionGeneration){this._retrievingOption=false;root.querySelector('#save-product').disabled=Boolean(this._saving);root.querySelectorAll('.retrieve-option').forEach(button=>{button.disabled=this._hass?.user?.is_admin!==true;});}

@@ -2,6 +2,7 @@
 import asyncio
 from decimal import Decimal, InvalidOperation
 import json
+import re
 import time
 
 import aiohttp
@@ -31,13 +32,19 @@ def product_data(data,link,expected_ean=""):
     if not isinstance(data,dict) or str(data.get("id",""))!=link["id"]:
         raise PriceError("La ficha de Mercadona no corresponde al producto.",response_class="invalid_product")
     code=data.get("ean")
-    if not gtin(code) or expected_ean and gtin(code)!=gtin(expected_ean):
+    # Restricted-circulation 2xxxxxxxxxxxx codes identify a store's fresh goods,
+    # not a shared package across retailers. Validate their checksum as GTIN-14,
+    # but keep them out of ean; the verified product ID is the local identity.
+    shared_ean=gtin(code)
+    local_code=isinstance(code,str) and re.fullmatch(r"2[0-9]{12}",code) and gtin("0"+code)
+    if (not shared_ean and not local_code
+            or expected_ean and (not shared_ean or shared_ean!=gtin(expected_ean))):
         raise PriceError("El EAN de Mercadona no coincide con el producto.",response_class="ean_mismatch")
     prices=data.get("price_instructions")
     if not isinstance(prices,dict):
         raise PriceError("Mercadona no ha devuelto los datos del envase.",response_class="invalid_response")
     details=data.get("details") if isinstance(data.get("details"),dict) else {}
-    result={"store":STORE,"reference_id":link["id"],"url":link["url"],"ean":code,
+    result={"store":STORE,"reference_id":link["id"],"url":link["url"],"ean":code if shared_ean else "",
         "name":str(data.get("display_name") or "")[:500],
         "brand":brand_name(data.get("brand") or details.get("brand") or ""),"checked_at":int(time.time())}
     # unit_size is the size of the sellable package; pack_size describes its presentation.
@@ -57,6 +64,11 @@ def product_data(data,link,expected_ean=""):
     basis={"ud":"uds","unidad":"uds","unidades":"uds"}.get(basis,basis)
     if rate and basis in ("kg","l","uds"):
         result["measure_price"]=measure_price({"price":rate,"quantity":1,"unit":basis,"currency":"EUR","source":"web","checked_at":result["checked_at"]})
+    if (data.get("is_bulk") or data.get("is_variable_weight")) and str(prices.get("size_format") or "").lower().strip() in ("g","kg"):
+        result.update(sale_mode="weight",content_unit="kg")
+        # unit_price is an estimate for the displayed weight, never a €/kg rate.
+        result.pop("price",None)
+        if rate and basis=="kg":result.update(price=rate,currency="EUR")
     return result
 
 

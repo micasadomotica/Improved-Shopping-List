@@ -357,6 +357,6 @@ class OptionLookup:
                 normalize_sale_mode(result)
                 self._cache[(store, link["id"])] = (time.monotonic()+60, deepcopy(result))
                 self._cache = dict(list(self._cache.items())[-100:])
-            if expected_ean and result.get("ean") and gtin(expected_ean) != gtin(result["ean"]):
+            if expected_ean and (result.get("ean") or store=="mercadona") and (not gtin(result.get("ean")) or gtin(expected_ean) != gtin(result.get("ean"))):
                 raise PriceError("El EAN de la web no coincide con esta opción. Revisa el enlace antes de vincularlo.", response_class="ean_mismatch")
             return result

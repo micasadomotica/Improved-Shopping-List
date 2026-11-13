@@ -2834,6 +2834,42 @@ async function checkSavedOptionURL(browser,url,errors){
   }
 }
 
+async function checkMercadonaLocalReferences(browser,url,errors){
+  const context=await browser.newContext({viewport:{width:1280,height:960}});
+  await context.addInitScript(()=>{
+    const original={id:'lidl',store:'lidl',name:'Bandeja Lidl',ean:'8410422111086',reference_id:'100001',url:'https://www.lidl.es/aguacates/p100001',content_quantity:500,content_unit:'g',content_confirmed:true};
+    localStorage.setItem('catalog-fixture',JSON.stringify([{id:'avocado',revision:1,name:'Aguacate',category:'',tags:[],image_url:'',icon:'',store_links:{lidl:original.url},barcodes:[original.ean],commercial_references:[original]}]));
+  });
+  const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));await page.goto(url);
+  await page.getByRole('button',{name:'Catálogo',exact:true}).click();const catalog=page.locator('isl-catalog');
+  await catalog.getByRole('button',{name:'Cambiar a vista de filas',exact:true}).click();
+  await catalog.getByRole('button',{name:'Editar Aguacate',exact:true}).click();
+  const form=catalog.getByRole('dialog',{name:'Editar producto',exact:true});await form.getByRole('button',{name:'Alternativas',exact:true}).click();
+  for(const [identifier,price] of [['3830',5.6],['3858',5.3]]){
+    await page.evaluate(({identifier,price})=>{window.optionLookupFixture={store:'mercadona',reference_id:identifier,url:'https://tienda.mercadona.es/product/'+identifier,name:identifier==='3830'?'Aguacate pieza':'Aguacates bandeja',sale_mode:'weight',content_unit:'kg',price,currency:'EUR',checked_at:1800000000,measure_price:{price,quantity:1,unit:'kg',currency:'EUR',checked_at:1800000000,source:'web'}};},{identifier,price});
+    await form.locator('#product-link-value').fill('https://tienda.mercadona.es/product/'+identifier);
+    await form.locator('#retrieve-product-data').click();
+    await form.getByText('Datos recuperados. Guarda el producto para conservarlos.',{exact:true}).waitFor();
+  }
+  assert.equal(await form.locator('.product-option').count(),3);
+  const lidl=form.locator('.product-option[data-store="lidl"]');await openStoreOption(lidl);
+  await lidl.getByLabel('URL de Lidl',{exact:true}).fill('https://tienda.mercadona.es/product/3858');
+  await lidl.getByRole('button',{name:'Recuperar datos',exact:true}).click();
+  await form.getByText(/La ficha no tiene un EAN compartido/).waitFor();
+  assert.equal(await form.locator('.product-option').count(),3);
+  await form.getByRole('button',{name:'Guardar producto',exact:true}).click();await form.waitFor({state:'hidden'});
+  const saved=await page.evaluate(()=>window.catalogProducts[0]);
+  const original=saved.commercial_references.find(ref=>ref.store==='lidl');
+  assert.equal(original.ean,'8410422111086');assert.equal(original.content_quantity,500);
+  assert.equal(original.url,'https://www.lidl.es/aguacates/p100001');
+  const local=saved.commercial_references.filter(ref=>ref.store==='mercadona');
+  assert.deepEqual(local.map(ref=>ref.reference_id),['3830','3858']);
+  assert.deepEqual(local.map(ref=>ref.measure_price.price),[5.6,5.3]);
+  assert.ok(local.every(ref=>!ref.ean&&ref.content_quantity===null&&ref.content_unit==='kg'&&ref.sale_mode==='weight'));
+  assert.deepEqual([saved.barcode,...saved.barcodes],['8410422111086']);
+  await context.close();
+}
+
 async function checkAppearanceInLists(browser,url,errors){
   const context=await browser.newContext({viewport:{width:1280,height:960}}),page=await context.newPage();
   page.on('pageerror',error=>errors.push(error.message));await page.goto(url);
@@ -3414,6 +3450,7 @@ async function main() {
   let browser;
   try {
     browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL || undefined });
+    if(process.argv.includes('--mercadona-local-only')){const errors=[];await checkMercadonaLocalReferences(browser,`http://127.0.0.1:${server.address().port}`,errors);assert.deepEqual(errors,[]);console.log('Mercadona local references browser checks passed.');return;}
     if(process.argv.includes('--product-url-only')){const errors=[];const url=`http://127.0.0.1:${server.address().port}`;await checkStagedOptionURL(browser,url,errors);await checkSavedOptionURL(browser,url,errors);assert.deepEqual(errors,[]);console.log('Product URL persistence browser checks passed.');return;}
     if(process.argv.includes('--lidl-prices-only')){const errors=[];await checkLidlCatalogPrices(browser,`http://127.0.0.1:${server.address().port}`,errors);assert.deepEqual(errors,[]);console.log('Lidl catalog prices passed.');return;}
     if(process.argv.includes('--readers-editor-only')){const errors=[];await checkReaderEditor(browser,`http://127.0.0.1:${server.address().port}`,errors);assert.deepEqual(errors,[]);console.log('Reader editor passed.');return;}
@@ -5869,6 +5906,7 @@ async function main() {
     await checkBulkOptionLookup(browser,url,errors);
     await checkStagedOptionURL(browser,url,errors);
     await checkSavedOptionURL(browser,url,errors);
+    await checkMercadonaLocalReferences(browser,url,errors);
     await checkLidlMetadata(browser,url,errors);
     await checkLidlReprocessLines(browser,url,errors);
     await checkReferenceFormats(browser,url,errors);

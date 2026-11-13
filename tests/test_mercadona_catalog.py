@@ -74,6 +74,64 @@ async def setup(hass):
     return catalog,links,lookup,source
 
 
+def fresh_payload(identifier='3830'):
+    """Public API fields observed for the piece and variable-weight tray."""
+    tray=identifier=='3858'
+    return {'id':identifier,'ean':'2105400038580' if tray else '2105495038304',
+        'display_name':'Aguacates' if tray else 'Aguacate','is_bulk':True,'is_variable_weight':tray,
+        'price_instructions':{'unit_price':'3.87' if tray else '1.01',
+            'unit_size':.73 if tray else .18,'size_format':'kg','approx_size':True,
+            'is_pack':tray,'pack_size':.6 if tray else None,'total_units':None,
+            'reference_price':'5.30' if tray else '5.60','reference_format':'kg'}}
+
+
+@pytest.mark.parametrize('identifier',['3830','3858'])
+def test_restricted_fresh_code_is_never_a_shared_ean_or_fixed_package(identifier):
+    p=fresh_payload(identifier);link=normalize_link('mercadona',f'https://tienda.mercadona.es/product/{identifier}')
+    data=product_data(p,link)
+    assert not data['ean'] and not gtin(p['ean'])
+    assert data['reference_id']==identifier and data['sale_mode']=='weight'
+    assert data['content_unit']=='kg' and 'content_quantity' not in data and 'pack_count' not in data
+    assert data['price']==float(p['price_instructions']['reference_price'])
+    assert data['measure_price']['price']==data['price']
+    with pytest.raises(PriceError):product_data(p,link,EAN)
+    with pytest.raises(PriceError):product_data(p,{**link,'id':'999'})
+    p['price_instructions'].pop('reference_price')
+    data=product_data(p,link)
+    assert 'price' not in data and 'measure_price' not in data
+
+
+@pytest.mark.parametrize('code',['',None,'2105495038305','2abcdefghijk4','3830'])
+def test_invalid_or_missing_code_still_rejects_manual_retrieval(code):
+    p=fresh_payload();p['ean']=code
+    with pytest.raises(PriceError):product_data(p,normalize_link('mercadona','https://tienda.mercadona.es/product/3830'))
+
+
+@pytest.mark.parametrize('identifier',['3830','3858'])
+async def test_manual_fresh_lookup_persists_by_store_id_and_cannot_satisfy_an_ean(hass,aioclient_mock,monkeypatch,identifier):
+    url=f'https://tienda.mercadona.es/product/{identifier}'
+    aioclient_mock.get(f'https://tienda.mercadona.es/api/products/{identifier}/?lang=es&wh=mad1',json=fresh_payload(identifier))
+    lookup=OptionLookup(hass);monkeypatch.setattr(lookup,'_before_request',AsyncMock())
+    try:
+        # Automatic EAN matching must reject a fresh response and a cached one.
+        with pytest.raises(PriceError,match='EAN'):await lookup.retrieve(url,expected_ean=EAN)
+        data=await lookup.retrieve(url)
+        assert not data.get('ean') and data['reference_id']==identifier
+        with pytest.raises(PriceError,match='EAN'):await lookup.retrieve(url,expected_ean=EAN)
+        assert aioclient_mock.call_count==1
+        catalog=Catalog(hass);await catalog.async_load()
+        product=await catalog.async_save_product({'name':'Aguacate','commercial_references':[{
+            'store':'mercadona','url':url,'reference_id':data['reference_id'],'name':data['name'],
+            'sale_mode':data['sale_mode'],'content_unit':'kg','measure_price':data['measure_price']}]})
+        restored=Catalog(hass);await restored.async_load()
+        saved=next(p for p in restored.products if p['id']==product['id'])
+        ref=saved['commercial_references'][0]
+        assert not ref['ean'] and ref['reference_id']==identifier and ref['content_quantity'] is None
+        assert not saved['barcode'] and not saved['barcodes']
+        assert ref['measure_price']['price']==data['measure_price']['price']
+    finally:lookup.close()
+
+
 async def test_opt_in_dictionary_only_merge_visibility_restart_and_exclusions(hass):
     catalog,links,lookup,source=await setup(hass)
     source._active=True

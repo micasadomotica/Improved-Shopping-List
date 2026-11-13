@@ -1,5 +1,6 @@
 """Eligibility, forced URL retrieval, spacing, saved progress and safe merges."""
 import asyncio
+from copy import deepcopy
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 import time
@@ -148,3 +149,22 @@ async def test_force_bypasses_the_option_cache(hass,aioclient_mock,monkeypatch):
     await lookup.retrieve(URL,force=True)
     assert aioclient_mock.call_count==2
     lookup.close()
+
+
+async def test_local_mercadona_result_stays_separate_from_original_ean(hass):
+    url='https://tienda.mercadona.es/product/3830'
+    catalog=Catalog(hass);await catalog.async_load()
+    original=await catalog.async_save_product({'name':'Aguacate','commercial_references':[
+        reference('mercadona',url,content_quantity=500,content_unit='g',content_confirmed=True)]})
+    product={key:deepcopy(original[key]) for key in FIELDS if key in original}
+    job={'reference_id':original['commercial_references'][0]['id'],'url':url}
+    data={'store':'mercadona','reference_id':'3830','url':url,'name':'Aguacate',
+        'price':5.6,'currency':'EUR','checked_at':1800000000,'sale_mode':'weight','content_unit':'kg',
+        'measure_price':{'price':5.6,'quantity':1,'unit':'kg','currency':'EUR','checked_at':1800000000,'source':'web'}}
+    assert merge_result(product,job,data)
+    saved=await catalog.async_save_product(product)
+    first,local=saved['commercial_references']
+    assert first['ean']==EAN and first['content_quantity']==500 and first['url']==''
+    assert not local['ean'] and local['reference_id']=='3830' and local['content_quantity'] is None
+    assert local['content_unit']=='kg' and local['measure_price']['price']==5.6
+    assert not pending(saved)
